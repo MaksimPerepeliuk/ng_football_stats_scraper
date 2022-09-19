@@ -9,7 +9,7 @@ def get_driver(headless=True):
     if headless:
         chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1920x1080")
-    chromedriver_path = 'nowg_parser/chromedriver'
+    chromedriver_path = './ng_football_stats_scraper/chromedriver'
     return webdriver.Chrome(options=chrome_options,
                             executable_path=chromedriver_path)
 
@@ -66,23 +66,23 @@ def get_analize_urls(champ_url, page=None):
             urls.append(event_urls)
         except Exception:
             write_text_file(f'{champ_url} : {i}',
-                            'nowg_parser/urls/failed_received_urls3.txt')
+                            './ng_football_stats_scraper/urls/failed_received_urls3.txt')
     driver.quit()
     return flatten(urls)
 
 
 def run_parse(url, page=None):
-    filepath = 'nowg_parser/urls/events__urls.txt'
+    filepath = './ng_football_stats_scraper/urls/euro_events_urls.txt'
     try:
         events_urls = get_analize_urls(url, page)
         [write_text_file(event_url, filepath) for event_url in events_urls]
     except Exception as e:
         print(e)
-        write_text_file(url, 'nowg_parser/urls/failed_parsing_urls_.txt')
+        write_text_file(url, './ng_football_stats_scraper/urls/champs_failed_urls_.txt')
 
 
 def main():
-    urls_file = open('nowg_parser/urls/champs_urls.txt')
+    urls_file = open('./ng_football_stats_scraper/urls/euro_champs_urls.txt')
     urls = urls_file.read().split(', ')
     urls_file.close()
     for url in tqdm(urls):

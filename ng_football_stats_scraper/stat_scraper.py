@@ -27,7 +27,7 @@ def write_csv(data, file_name, order):
 
 def write_text_file(data, file_name):
     with open(file_name, 'a') as file:
-        file.write(f'{data}')
+        file.write(f'{data}, ')
 
 
 def strip_parentheses(string):
@@ -45,17 +45,20 @@ def get_event_info(soup):
         [a.text for a in soup.select('span.sclassName a')][1]]
     final_result = [int(div.text)for div in soup.select('div.score')]
     total_score = sum(final_result)
-    first_half_result = soup.find('span', title="Score 1st Half").text
-    second_half_result = soup.find('span', title="Score 2nd Half").text
-    data = {'champ_title': champ_title.strip(),
-            'date': date.strip(),
-            'home': teams_titles[0].strip(),
-            'away': teams_titles[1].strip(),
-            'result': '{}-{}'.format(final_result[0], final_result[1]),
-            'total_score': total_score,
-            'first_half': first_half_result,
-            'second_half': second_half_result}
-    return data
+    status = soup.select('div#mScore')[0].select('span')[0].text.strip()
+    if status == 'Cancel':
+        return False
+    else:
+        first_half_result = soup.find('span', title="Score 1st Half").text
+        second_half_result = soup.find('span', title="Score 2nd Half").text
+        return {'champ_title': champ_title.strip(),
+                'date': date.strip(),
+                'home': teams_titles[0].strip(),
+                'away': teams_titles[1].strip(),
+                'result': '{}-{}'.format(final_result[0], final_result[1]),
+                'total_score': total_score,
+                'first_half': first_half_result,
+                'second_half': second_half_result}
 
 
 def get_stat_key_order(stats):
@@ -84,15 +87,19 @@ def get_stat_key_order(stats):
     
 
 def get_event_stat(soup):
-    stats_li = soup.find('ul', class_='stat').find_all('li')
-    data = {}
-    for li in stats_li:
-        stat_row = li.find_all('span')
-        home_score = stat_row[0].text.strip() or 0
-        stat_title = stat_row[3].text.lower().strip()
-        away_score = stat_row[6].text.strip() or 0
-        data[f'{stat_title} home'] = home_score
-        data[f'{stat_title} away'] = away_score
+    try:
+        stats_li = soup.find('ul', class_='stat').find_all('li')
+        data = {}
+        for li in stats_li:
+            stat_row = li.find_all('span')
+            home_score = stat_row[0].text.strip() or 0
+            stat_title = stat_row[3].text.lower().strip()
+            away_score = stat_row[6].text.strip() or 0
+            data[f'{stat_title} home'] = home_score
+            data[f'{stat_title} away'] = away_score
+    except:
+        return {}
+    
     return get_stat_key_order(data)
 
 
@@ -136,16 +143,18 @@ def main(urls):
             stat_page_html = get_html(new_url)
             soup = BeautifulSoup(stat_page_html, 'lxml')
             event_info = get_event_info(soup)
+            if event_info == False:
+                continue
             event_stat = get_event_stat(soup)
             odds_page_html = get_html(get_odds_page_url(new_url))
             odds_info = get_odds_stat(BeautifulSoup(odds_page_html, 'lxml'))
             data = {**event_info, **event_stat, **odds_info}
             order = list(data.keys())
-            write_csv(data, './ng_football_stats_scraper/data/event_stats.csv', order)
+            write_csv(data, './ng_football_stats_scraper/data/euro_event_stats.csv', order)
         except Exception as e:
             print(traceback.format_exc())
             write_text_file(
-                url, './ng_football_stats_scraper/urls/stat_failed_urls.txt')
+                url, './ng_football_stats_scraper/urls/stat_failed_urls4.txt')
             continue
 
 
@@ -156,9 +165,7 @@ def start_parallel_execution(f, urls, n_proc):
 
 
 if __name__ == '__main__':
-    # urls_file = open('./ng_football_stats_scraper/urls/events__urls.txt')
-    urls_file = open('./ng_football_stats_scraper/urls/stat_failed_urls.txt')
+    urls_file = open('./ng_football_stats_scraper/urls/euro_events_urls.txt')
     urls = urls_file.read().split(', ')
     urls_file.close()
-    # start_parallel_execution(main, urls, 8)
-    main(urls[6:])
+    start_parallel_execution(main, urls, 6)
